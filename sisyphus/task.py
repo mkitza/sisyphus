@@ -41,7 +41,7 @@ class Task(object):
             self._rqmt['engine'] = 'short'
         self._update_rqmt = update_rqmt if update_rqmt else gs.update_engine_rqmt
         self._args = list(args)
-        self._parallel = len(self._args) if parallel == 0 else parallel
+        self._parallel = min(len(self._args) if parallel == 0 else parallel, gs.MAX_PARALLEL) 
         self.mini_task = mini_task
         self.reset_cache()
         self.last_state = None

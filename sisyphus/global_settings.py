@@ -237,6 +237,9 @@ USE_SIGNAL_HANDLERS = False
 #: Disabled by default since it tends to confuse new users reading the code.
 AUTO_SET_JOB_INIT_ATTRIBUTES = False
 
+#: Maximum number of parallel tasks for each job
+MAX_PARALLEL = sys.maxsize 
+
 # Job environment
 #: Remove all environment variables to ensure the same environment between different users
 CLEANUP_ENVIRONMENT = True  # only Trump would say no!
