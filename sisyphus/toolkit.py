@@ -183,6 +183,8 @@ def register_report(name, values, template=None, required=None, update_frequency
     sis_graph.add_target(report)
     return report
 
+def reset_outputs(): 
+    sis_graph.reset_targets() 
 
 current_config_ = None
 

@@ -269,6 +269,11 @@ class SISGraph(object):
         if not target.is_done():
             self._active_targets.append(target)
 
+    def reset_targets(self): 
+        self._active_targets = [] 
+        self._targets = [] 
+        self.used_output_path = {} 
+
     def update_nodes(self):
         """ Update all nodes to get the most current dependency graph """
         start = time.time()
