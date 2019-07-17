@@ -260,6 +260,9 @@ DEFAULT_ENVIRONMENT_SET = {'LANG': 'en_US.UTF-8',
 #: Directory used by tk.mktemp
 TMP_PREFIX = os.path.join(os.environ.get('TMPDIR', '/tmp'), 'sis_')
 
+# Additional commands executed when loggin in to the gateway.
+SGE_SSH_COMMANDS = []
+
 # Visualization
 #: For http visualization, list job input as common input if it is share between more then X*(total jobs) jobs
 VIS_RELATIVE_MERGE_THRESHOLD = 0.25

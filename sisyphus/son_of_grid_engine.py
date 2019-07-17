@@ -66,7 +66,7 @@ class SonOfGridEngine(EngineBase):
         :rtype: list[bytes], list[bytes], int
         """
         if self.gateway:
-            system_command = ['ssh', '-x', self.gateway] + [' '.join(['cd', os.getcwd(), '&&'] + command)]
+            system_command = ['ssh', '-x', self.gateway] + gs.SGE_SSH_COMMANDS + [' '.join(['cd', os.getcwd(), '&&'] + command)]
         else:
             # no gateway given, skip ssh local
             system_command = command
