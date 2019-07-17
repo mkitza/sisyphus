@@ -156,7 +156,7 @@ class Path(object):
 
     def __str__(self):
         if self.cached:
-            return '`cf %s`' % self.get_path()
+            return  gs.file_caching(self.get_path())
         else:
             return self.get_path()
 

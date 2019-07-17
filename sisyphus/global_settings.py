@@ -104,7 +104,7 @@ def check_engine_limits(current_rqmt, task):
     return current_rqmt
 
 
-def file_caching(path):
+def file_caching(path, is_output=False):
     """ This function should be replaced to enable file caching.
     e.g. copy given file to /var/tmp and return new path.
     The default behaviour is to just pass on the given path
