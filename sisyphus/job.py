@@ -717,7 +717,8 @@ class Job(object, metaclass=JobSingleton):
         :rtype: list[sisyphus.task.Task]
         """
         if not self._sis_runnable():
-            assert False, "Only runnable jobs can list needed tasks"
+            if not self._sis_runnable():
+                assert False, "Only runnable jobs can list needed tasks"
         if not hasattr(self, '_sis_task_cache'):
             cache = []
             for task in self.tasks():
