@@ -463,7 +463,7 @@ class Manager(threading.Thread):
                 self.clear_errors()
             elif self.ignore_once:
                 pass
-            else:
+            elif gs.CLEAR_ERROR:
                 answer = self.input('Clear jobs in error state? [y/N] ')
                 if answer.lower() == 'y':
                     self.clear_once = True
