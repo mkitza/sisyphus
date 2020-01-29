@@ -233,8 +233,11 @@ class Task(object):
         return current_state
 
     def finished(self, task_id=None, update=None):
+        minimal_time_since_change = 0
+        if not gs.SKIP_IS_FINISHED_TIMEOUT:
+            minimal_time_since_change = gs.WAIT_PERIOD_JOB_FS_SYNC + gs.WAIT_PERIOD_JOB_CLEANUP
         if self.check_state(gs.STATE_FINISHED, task_id, update=update, combine=all,
-                            minimal_time_since_change=gs.WAIT_PERIOD_JOB_FS_SYNC + gs.WAIT_PERIOD_JOB_CLEANUP):
+                            minimal_time_since_change=minimal_time_since_change):
             return True
         else:
             return False
@@ -366,7 +369,7 @@ class Task(object):
                         elif self.running(task_id):
                             return gs.STATE_RUNNING
                         history = [] if engine is None else engine.get_submit_history(self)
-                        if history and len(history[task_id]) > 3:  # TODO make it an global setting
+                        if history and len(history[task_id]) > gs.MAX_SUBMIT_RETRIES:
                             # More then three tries to run this task, something is wrong
                             return gs.STATE_RETRY_ERROR
                         else:

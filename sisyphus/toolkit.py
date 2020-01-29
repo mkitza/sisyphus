@@ -231,9 +231,9 @@ def setup_path(package: str) -> RelPath:
     path = package.replace('.', '/')
     hash_overwrite = None
     if package.startswith(gs.RECIPE_PREFIX):
-        if gs.RECIPE_PATH == '.':
-            hash_overwrite = path
-            path = os.path.join(gs.RECIPE_PATH, path)
+        hash_overwrite = path
+        path = os.path.join(gs.RECIPE_PATH, path)
+
     return RelPath(path, hash_overwrite=hash_overwrite)
 
 
@@ -584,7 +584,10 @@ def cleaner(clean_job_dir: bool=False,
                         if os.path.islink(k):
                             os.unlink(k)
                         else:
-                            shutil.rmtree(k)
+                            try:
+                                shutil.rmtree(k)
+                            except OSError as error:
+                                print(error)
                     else:
                         assert False
             else:
@@ -619,7 +622,7 @@ def start_manager(job_engine=None, start_computations=False):
     return sisyphus.manager.Manager(sis_graph=sis_graph,
                                     job_engine=job_engine,
                                     link_outputs=False,
-                                    clear_once=False,
+                                    clear_errors_once=False,
                                     start_computations=start_computations,
                                     auto_print_stat_overview=False)
 
@@ -726,11 +729,11 @@ def export_graph(output_file: Optional[str]=None):
 
 def migrate_graph(input_file=None, work_source=None, mode='dryrun'):
     """
-    Needs more testing
+    migrate the graph from the provided graph file to the current graph
 
-    :param input_file:
-    :param work_source:
-    :param mode:
+    :param str input_file: path to the graph file
+    :param str|None work_source: path to the work folder, if None use the local work folder
+    :param str mode: dryrun, link, copy, move, move_and_link, hardlink_or_copy, hardlink_or_link, the default is dryrun
     :return:
     """
     sis_graph.update_nodes()
@@ -948,11 +951,68 @@ def reload_module(module):
         importlib.reload(module)
 
 
-def run(obj: Any):
+def setup_script_mode():
+    """ Use this function if you start sisyphus from an recipe file, it will:
+
+#. setup logging level and prompt
+
+#. disable the wait periods
+
+#. disable unwanted warning
+
+You can run recipes directly by running something similar to this::
+
+    export SIS_RECIPE_PATH=/PATH/TO/RECIPE/DIR
+    # If sisyphus is not installed in your python path
+    export PYTHONPATH=/PATH/TO/SISYPHUS:$PYTHONPATH
+    # If you want to change the work directory:
+    export SIS_WORK_DIR=/PATH/TO/WORK/DIR
+    python3 $SIS_RECIPE_PATH/recipe/path_to_file script parameters
+
+An example for the recipe::
+
+    import os
+    import argparse
+    from sisyphus import *
+    from recipe.eval import bleu
+
+    if __name__ == '__main__':
+        tk.setup_script_mode()
+
+        parser = argparse.ArgumentParser(description='Evaluate hypothesis')
+        parser.add_argument('--hyp', help='hypothesis', required=True)
+        parser.add_argument('--ref', help='reference', required=True)
+
+        args = parser.parse_args()
+        hyp = os.path.realpath(args.hyp)
+        ref = os.path.realpath(args.ref)
+
+        score = bleu(hyp, ref)
+
+        tk.run(score, quiet=True)
+        print(score.out)
+    """
+    # Setup logging
+    import logging
+    from sisyphus.logging_format import add_coloring_to_logging
+    logging.basicConfig(format='[%(asctime)s] %(levelname)s: %(message)s', level=20)
+    add_coloring_to_logging()
+
+    for param in ['WAIT_PERIOD_JOB_FS_SYNC',  # Work around to avoid running into time out...
+                  'WAIT_PERIOD_JOB_CLEANUP',  # same here
+                  'WAIT_PERIOD_MTIME_OF_INPUTS',  # Speed up by not waiting for slow filesystem
+                  'ENGINE_NOT_SETUP_WARNING',  # Disable unwanted warning
+                  ]:
+        setattr(gs, param, 0)
+        gs.ENVIRONMENT_SETTINGS['SIS_%s' % param] = '0'
+
+
+def run(obj: Any, quiet: bool = False):
     """
     Run and setup all jobs that are contained inside object and all jobs that are necessary.
     
     :param obj:
+    :param quiet: Do not forward job output do stdout
     :return:
     """
 
@@ -965,19 +1025,23 @@ def run(obj: Any):
         """
         assert job._sis_runnable()
         if not job._sis_finished():
-            print()
             logging.info("Run Job: %s" % job)
             job._sis_setup_directory()
             for task in job._sis_tasks():
                 for task_id in task.task_ids():
                     if not task.finished(task_id):
-                        print()
-                        logging.info("Run Task: %s %s %s" % (job, task.name(), task_id))
+                        if len(job._sis_tasks()) > 1 or len(task.task_ids()) > 1:
+                            logging.info("Run Task: %s %s %s" % (job, task.name(), task_id))
                         log_file = task.path(gs.JOB_LOG, task_id)
                         env = os.environ.copy()
                         env.update(gs.ENVIRONMENT_SETTINGS)
-                        subprocess.check_call(" ".join(task.get_worker_call(task_id)) + ' 2>&1 | tee %s' % log_file,
-                                              shell=True, env=env)
+
+                        call = " ".join(task.get_worker_call(task_id))
+                        if quiet:
+                            call += ' --redirect_output'
+                        else:
+                            call += ' 2>&1 > %s' % log_file
+                        subprocess.check_call(call, shell=True, env=env)
                         assert task.finished(task_id), "Failed to run task %s %s %s" % (job, task.name(), task_id)
 
     # Create fresh graph and add object as report since a report can handle all kinds of objects.
@@ -991,6 +1055,7 @@ def run(obj: Any):
     # Update SIS_COMMAND
     import sys
     gs.SIS_COMMAND = [sys.executable, '-m', 'sisyphus']
+    gs.SKIP_IS_FINISHED_TIMEOUT = True
 
     def get_jobs():
         """ Helper function to get all relevant jobs"""
@@ -1016,3 +1081,5 @@ def run(obj: Any):
         for job in todo_list:
             run_helper(job)
         jobs = get_jobs()
+
+    gs.SKIP_IS_FINISHED_TIMEOUT = False

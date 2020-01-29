@@ -41,7 +41,10 @@ def engine():
     """
     import psutil
     cpu_count = psutil.cpu_count()
-    logging.info('No custom engine setup, using default engine: LocalEngine(cpu=%i, gpu=0)' % cpu_count)
+
+    if ENGINE_NOT_SETUP_WARNING:
+        logging.info('No custom engine setup, using default engine: LocalEngine(cpu=%i, gpu=0)' % cpu_count)
+
     from sisyphus.localengine import LocalEngine
     return LocalEngine(cpu=cpu_count, gpu=0)
 
@@ -147,7 +150,10 @@ MANAGER_SUBMIT_WORKER = 10
 
 #: How many locks can be used by all jobs (one lock per job). If there are more jobs than locks, locks are reused
 #: This could lead to a slowdown, but the number of locks per process is limited
-JOB_MAX_NUMBER_OF_LOCKS = 5000
+JOB_MAX_NUMBER_OF_LOCKS = 100
+
+#: How often sisyphus will try to resubmit a task to the engine before returning a RETRY_ERROR
+MAX_SUBMIT_RETRIES = 3
 
 #: Default function to hash jobs and objects
 SIS_HASH = sisyphus.hash.short_hash
@@ -276,6 +282,9 @@ SHOW_VIS_NAME_IN_MANAGER = True
 # Add stacktrace information with specified depth, 0 for deactivation, None or -1 for full stack
 JOB_ADD_STACKTRACE_WITH_DEPTH = 0
 
+# Is enabled if tk.run is called
+SKIP_IS_FINISHED_TIMEOUT = False
+
 # Internal functions
 def update_global_settings_from_text(text, filename):
     """
@@ -371,6 +380,9 @@ def cached_engine(cache=[]):
 MEMORY_PROFILE_LOG = None
 
 USE_UI = True
+
+# Set to False to disable Warning of unset engine
+ENGINE_NOT_SETUP_WARNING = True
 
 update_global_settings_from_env()
 update_global_settings_from_file(GLOBAL_SETTINGS_FILE_DEFAULT)
