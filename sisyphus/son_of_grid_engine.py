@@ -145,7 +145,10 @@ class SonOfGridEngine(EngineBase):
         # Try to convert time to float, calculate minutes from it
         # and convert it back to an rounded string
         # If it fails use string directly
-        task_time = try_to_multiply(rqmt['time'], 60 * 60)  # convert to seconds if possible
+        task_time = rqmt['time']
+        if gs.ENGINE_TIME_BREAKPOINTS:
+            task_time = min(gs.ENGINE_TIME_BREAKPOINTS, key=lambda x:abs(x-task_time))
+        task_time = try_to_multiply(task_time, 60 * 60)  # convert to seconds if possible 
 
         out.append('-l')
         out.append('h_rt=%s' % task_time)

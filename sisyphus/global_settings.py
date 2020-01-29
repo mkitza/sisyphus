@@ -116,6 +116,8 @@ def file_caching(path, is_output=False):
     logging.info('No file caching function set, simply keep given path: %s' % path)
     return path
 
+# Always use the maximum amount of time for a queue to prevent killed jobs : [24, 24*7] for i6
+ENGINE_TIME_BREAKPOINTS = None 
 
 # Experimental settings
 # Log when a job output was used the last time, currently not active maintained
